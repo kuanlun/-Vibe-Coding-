@@ -1,0 +1,33 @@
+git config --global user.name "kuanlun"
+
+git config --global user.email "319334879@qq.com"
+
+---------------------------------检测当前登录信息----------------------------------------------------------
+
+git config --global user.name "kuanlun"
+
+git config --global user.email "319334879@qq.com"
+
+---------------------------------第一次git项目--------------------------------------------------------------
+
+rm -r -force .git
+
+git init
+
+git add .
+
+git commit -m "第一个VibeCoding程序"
+
+ git branch -M main
+
+git remote add origin https://github.com/kuanlun/-Vibe-Coding-.git
+
+git push -u origin main -f（注意 -f 会清除所有github上面的文件，仅保留本地上传的文件，谨慎考虑！！！）
+
+--------------------------------------------------------------------------------------------------------------
+正常情况
+git add .
+
+git commit -m "备注"
+
+git push
