@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盲盒列表 - 管理后台</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="admin-header">
+        <div class="header-content">
+            <h1>盲盒管理后台</h1>
+            <nav class="admin-nav">
+                <a href="/admin" class="nav-link">首页</a>
+                <a href="/admin/boxes" class="nav-link active">管理盲盒列表</a>
+                <a href="/admin/boxes/new" class="nav-link">添加新盲盒</a>
+                <form id="logout-form" class="logout-form">
+                    <button type="submit" class="btn-logout">登出</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+    <main>
+        <section class="admin-list">
+            <div class="list-header">
+                <h2>盲盒列表</h2>
+                <div class="view-toggle">
+                    <button id="btn-list-view" class="view-btn active" onclick="setView('list')" title="列表视图">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button id="btn-grid-view" class="view-btn" onclick="setView('grid')" title="网格视图">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                </div>
+                <a href="/admin/boxes/new" class="btn-add">添加新盲盒</a>
+            </div>
+            <div id="boxes-table-container">
+                <table class="boxes-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>图片</th>
+                            <th>名称</th>
+                            <th>价格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boxes-tbody">
+                        <!-- 数据将由 JavaScript 动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="pagination-container" class="pagination-container"></div>
+        </section>
+    </main>
+    <footer class="admin-footer">
+        <p>&copy; 2024 盲盒展示平台. All rights reserved.</p>
+    </footer>
+    <script>
+        const ITEMS_PER_PAGE = 10;
+        let currentPage = 1;
+        let allBoxes = [];
+        let currentView = 'list';
+
+        // Check session
+        (async function checkSession() {
+            try {
+                const response = await fetch('/api/admin/check', { credentials: 'include' });
+                if (!response.ok) {
+                    window.location.href = '/admin/login';
+                }
+            } catch (err) {
+                window.location.href = '/admin/login';
+            }
+        })();
+
+        // Load boxes
+        async function loadBoxes() {
+            try {
+                const response = await fetch('/api/boxes');
+                allBoxes = await response.json();
+                renderCurrentView();
+                renderPagination();
+            } catch (err) {
+                console.error('Failed to load boxes:', err);
+            }
+        }
+
+        // Set view mode
+        function setView(view) {
+            currentView = view;
+            document.getElementById('btn-list-view').classList.toggle('active', view === 'list');
+            document.getElementById('btn-grid-view').classList.toggle('active', view === 'grid');
+            localStorage.setItem('boxListView', view);
+            renderCurrentView();
+        }
+
+        // Render current view
+        function renderCurrentView() {
+            if (currentView === 'grid') {
+                renderGrid();
+            } else {
+                renderTable();
+            }
+        }
+
+        // Render table view
+        function renderTable() {
+            const container = document.getElementById('boxes-table-container');
+            container.innerHTML = `
+                <table class="boxes-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>图片</th>
+                            <th>名称</th>
+                            <th>价格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boxes-tbody">
+                    </tbody>
+                </table>
+            `;
+            const tbody = document.getElementById('boxes-tbody');
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageBoxes = allBoxes.slice(start, end);
+
+            if (pageBoxes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">暂无盲盒数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pageBoxes.map(box => `
+                <tr>
+                    <td>${box.id}</td>
+                    <td>
+                        <img src="${box.image_path || '/static/images/placeholder.png'}"
+                             alt="${box.name}"
+                             class="table-image"
+                             onerror="this.src='/static/images/placeholder.png'">
+                    </td>
+                    <td>${box.name}</td>
+                    <td>¥${box.price.toFixed(2)}</td>
+                    <td class="action-cell">
+                        <a href="/admin/boxes/${box.id}/edit" class="btn-edit">编辑</a>
+                        <button onclick="deleteBox(${box.id})" class="btn-delete">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Render grid view
+        function renderGrid() {
+            const container = document.getElementById('boxes-table-container');
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageBoxes = allBoxes.slice(start, end);
+
+            if (pageBoxes.length === 0) {
+                container.innerHTML = '<div class="empty-cell">暂无盲盒数据</div>';
+                return;
+            }
+
+            container.innerHTML = `<div class="boxes-grid">${pageBoxes.map(box => `
+                <div class="grid-item">
+                    <div class="grid-image">
+                        <img src="${box.image_path || '/static/images/placeholder.png'}"
+                             alt="${box.name}"
+                             onerror="this.src='/static/images/placeholder.png'">
+                    </div>
+                    <div class="grid-info">
+                        <h3>${box.name}</h3>
+                        <p class="grid-price">¥${box.price.toFixed(2)}</p>
+                    </div>
+                    <div class="grid-actions">
+                        <a href="/admin/boxes/${box.id}/edit" class="btn-edit">编辑</a>
+                        <button onclick="deleteBox(${box.id})" class="btn-delete">删除</button>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const container = document.getElementById('pagination-container');
+            const totalPages = Math.ceil(allBoxes.length / ITEMS_PER_PAGE);
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="pagination">';
+            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+            html += `<span class="page-info">第 ${currentPage} / ${totalPages} 页</span>`;
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(allBoxes.length / ITEMS_PER_PAGE);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderCurrentView();
+            renderPagination();
+        }
+
+        // Delete box
+        async function deleteBox(id) {
+            if (!confirm('确定要删除这个盲盒吗？此操作无法撤销。')) return;
+            try {
+                const response = await fetch(`/api/boxes/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    loadBoxes();
+                } else {
+                    alert('删除失败：' + (data.error || '未知错误'));
+                }
+            } catch (err) {
+                alert('网络错误，请稍后重试');
+            }
+        }
+
+        // Logout handler
+        document.getElementById('logout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!confirm('确定要退出登录吗？')) return;
+            try {
+                const response = await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    window.location.href = '/admin/login';
+                }
+            } catch (err) {
+                window.location.href = '/admin/login';
+            }
+        });
+
+        // Initialize view from localStorage
+        const savedView = localStorage.getItem('boxListView');
+        if (savedView) {
+            setView(savedView);
+        }
+
+        loadBoxes();
+    </script>
+</body>
+</html>

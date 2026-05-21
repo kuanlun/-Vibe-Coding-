@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="admin-header">
+        <div class="header-content">
+            <h1>盲盒管理后台</h1>
+            <nav class="admin-nav">
+                <a href="/admin" class="nav-link active">首页</a>
+                <a href="/admin/boxes" class="nav-link">管理盲盒列表</a>
+                <a href="/admin/boxes/new" class="nav-link">添加新盲盒</a>
+                <form id="logout-form" class="logout-form">
+                    <button type="submit" class="btn-logout">登出</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+    <main>
+        <section class="dashboard">
+            <div class="welcome-card">
+                <h2>欢迎来到管理后台</h2>
+                <p class="welcome-text">您可以在这里管理盲盒商品，包括添加、编辑、删除和查看盲盒信息。</p>
+            </div>
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>盲盒总数</h3>
+                    <p id="box-count" class="stat-value">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>操作</h3>
+                    <div class="action-links">
+                        <a href="/admin/boxes" class="action-link">
+                            <span class="link-icon">📦</span>
+                            <span>查看盲盒列表</span>
+                        </a>
+                        <a href="/admin/boxes/new" class="action-link">
+                            <span class="link-icon">➕</span>
+                            <span>添加新盲盒</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="admin-footer">
+        <p>&copy; 2024 盲盒展示平台. All rights reserved.</p>
+    </footer>
+    <script>
+        // Check session
+        (async function checkSession() {
+            try {
+                const response = await fetch('/api/admin/check', { credentials: 'include' });
+                if (!response.ok) {
+                    window.location.href = '/admin/login';
+                }
+            } catch (err) {
+                window.location.href = '/admin/login';
+            }
+        })();
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/boxes');
+                const boxes = await response.json();
+                document.getElementById('box-count').textContent = boxes.length;
+            } catch (err) {
+                document.getElementById('box-count').textContent = '无法加载';
+            }
+        }
+        loadStats();
+
+        // Logout handler
+        document.getElementById('logout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!confirm('确定要退出登录吗？')) return;
+            try {
+                const response = await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    window.location.href = '/admin/login';
+                }
+            } catch (err) {
+                window.location.href = '/admin/login';
+            }
+        });
+    </script>
+</body>
+</html>

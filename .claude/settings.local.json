@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from Python.BlindBox.website import app; print\\(app.url_map\\)\")",
+      "Bash(cd \"d:/VSProject\" && mv Python data doc static templates tests uploads \"第一集 盲盒网站/\")"
+    ],
+    "additionalDirectories": [
+      "d:\\VSProject\\Python"
+    ]
+  }
+}
